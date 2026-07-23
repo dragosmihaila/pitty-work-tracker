@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { signOut } from "@/app/actions";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import {
   buildHoursSummary,
   durationHours,
@@ -10,6 +11,8 @@ import {
   grandHoursTotal,
   type WorkType
 } from "@/lib/date-summary";
+import { useLanguage } from "@/lib/i18n";
+import { usePlatformStyle } from "@/lib/use-platform-style";
 
 export type ClientSession = {
   worker_id: string;
@@ -34,48 +37,53 @@ export function ClientDashboard({ fullName, pauses, sessions }: ClientDashboardP
   const daySummary = useMemo(() => buildHoursSummary(sessions, "day"), [sessions]);
   const weekSummary = useMemo(() => buildHoursSummary(sessions, "week"), [sessions]);
   const grandTotal = useMemo(() => grandHoursTotal(sessions), [sessions]);
+  const { language, setLanguage, t } = useLanguage();
+  const platformStyle = usePlatformStyle();
 
   return (
-    <main className="min-h-screen bg-paper">
+    <main className={`min-h-screen bg-paper os-${platformStyle}`}>
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4">
           <div>
-            <p className="label">Client dashboard</p>
-            <h1 className="text-2xl font-semibold text-slate-950">Hi, {fullName}</h1>
+            <p className="label">{t("clientDashboard")}</p>
+            <h1 className="text-2xl font-semibold text-slate-950">{t("hi", { name: fullName })}</h1>
           </div>
-          <form action={signOut}>
-            <button className="btn-secondary" type="submit">
-              Sign out
-            </button>
-          </form>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher label={t("language")} language={language} onChange={setLanguage} />
+            <form action={signOut}>
+              <button className="btn-secondary" type="submit">
+                {t("signOut")}
+              </button>
+            </form>
+          </div>
         </div>
       </header>
 
       <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-5">
         <section className="grid gap-3 sm:grid-cols-3">
-          <Metric label="Manual hours" value={formatHours(grandTotal.manual)} />
-          <Metric label="Excavator hours" value={formatHours(grandTotal.excavator)} />
-          <Metric label="Combined hours" value={formatHours(grandTotal.combined)} />
+          <Metric label={t("manualHours")} value={formatHours(grandTotal.manual)} />
+          <Metric label={t("excavatorHours")} value={formatHours(grandTotal.excavator)} />
+          <Metric label={t("combinedHours")} value={formatHours(grandTotal.combined)} />
         </section>
 
         <section className="grid gap-5 lg:grid-cols-2">
-          <SummaryTable title="Hours by day" buckets={daySummary} />
-          <SummaryTable title="Hours by week" buckets={weekSummary} />
+          <SummaryTable title={t("hoursByDay")} buckets={daySummary} t={t} />
+          <SummaryTable title={t("hoursByWeek")} buckets={weekSummary} t={t} />
         </section>
 
         <section className="rounded-md border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 p-4">
-            <p className="label">Work sessions</p>
+            <p className="label">{t("workSessions")}</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">Worker</th>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Start</th>
-                  <th className="px-4 py-3">End</th>
-                  <th className="px-4 py-3">Hours</th>
+                  <th className="px-4 py-3">{t("worker")}</th>
+                  <th className="px-4 py-3">{t("type")}</th>
+                  <th className="px-4 py-3">{t("start")}</th>
+                  <th className="px-4 py-3">{t("end")}</th>
+                  <th className="px-4 py-3">{t("hours")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -85,7 +93,7 @@ export function ClientDashboard({ fullName, pauses, sessions }: ClientDashboardP
                     key={`${session.worker_id}-${session.start_time}-${session.end_time}`}
                   >
                     <td className="px-4 py-3 font-mono text-xs">{session.worker_id}</td>
-                    <td className="px-4 py-3 capitalize">{session.work_type}</td>
+                    <td className="px-4 py-3">{t(session.work_type)}</td>
                     <td className="px-4 py-3">{formatDateTime(session.start_time)}</td>
                     <td className="px-4 py-3">{formatDateTime(session.end_time)}</td>
                     <td className="px-4 py-3">{formatHours(durationHours(session.start_time, session.end_time))}</td>
@@ -94,7 +102,7 @@ export function ClientDashboard({ fullName, pauses, sessions }: ClientDashboardP
                 {sessions.length === 0 ? (
                   <tr>
                     <td className="px-4 py-6 text-center text-slate-500" colSpan={5}>
-                      No work sessions yet.
+                      {t("noWorkSessions")}
                     </td>
                   </tr>
                 ) : null}
@@ -105,16 +113,16 @@ export function ClientDashboard({ fullName, pauses, sessions }: ClientDashboardP
 
         <section className="rounded-md border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 p-4">
-            <p className="label">Pauses</p>
+            <p className="label">{t("pauses")}</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">Worker</th>
-                  <th className="px-4 py-3">Start</th>
-                  <th className="px-4 py-3">End</th>
-                  <th className="px-4 py-3">Duration</th>
+                  <th className="px-4 py-3">{t("worker")}</th>
+                  <th className="px-4 py-3">{t("start")}</th>
+                  <th className="px-4 py-3">{t("end")}</th>
+                  <th className="px-4 py-3">{t("duration")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -129,7 +137,7 @@ export function ClientDashboard({ fullName, pauses, sessions }: ClientDashboardP
                 {pauses.length === 0 ? (
                   <tr>
                     <td className="px-4 py-6 text-center text-slate-500" colSpan={4}>
-                      No pauses yet.
+                      {t("noPauses")}
                     </td>
                   </tr>
                 ) : null}
@@ -153,10 +161,12 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function SummaryTable({
   title,
-  buckets
+  buckets,
+  t
 }: {
   title: string;
   buckets: ReturnType<typeof buildHoursSummary>;
+  t: (key: string, values?: Record<string, string | number>) => string;
 }) {
   return (
     <div className="rounded-md border border-slate-200 bg-white shadow-sm">
@@ -167,10 +177,10 @@ function SummaryTable({
         <table className="w-full min-w-[520px] text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
-              <th className="px-4 py-3">Period</th>
-              <th className="px-4 py-3">Manual</th>
-              <th className="px-4 py-3">Excavator</th>
-              <th className="px-4 py-3">Total</th>
+              <th className="px-4 py-3">{t("period")}</th>
+              <th className="px-4 py-3">{t("manual")}</th>
+              <th className="px-4 py-3">{t("excavator")}</th>
+              <th className="px-4 py-3">{t("total")}</th>
             </tr>
           </thead>
           <tbody>
@@ -185,7 +195,7 @@ function SummaryTable({
             {buckets.length === 0 ? (
               <tr>
                 <td className="px-4 py-6 text-center text-slate-500" colSpan={4}>
-                  No summary yet.
+                  {t("noSummary")}
                 </td>
               </tr>
             ) : null}
