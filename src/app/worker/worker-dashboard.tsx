@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { signOut } from "@/app/actions";
 import { logWorkSession, startPause, stopPause, updatePauseEnd } from "@/app/worker/actions";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { TimelineChart } from "@/components/timeline-chart";
 import { durationHours, formatDateTime, formatHours } from "@/lib/date-summary";
 import { useLanguage } from "@/lib/i18n";
 import { usePlatformStyle } from "@/lib/use-platform-style";
@@ -25,9 +26,21 @@ type WorkerDashboardProps = {
   fullName: string;
   sessions: WorkerSession[];
   activePause: PauseRow | null;
+  timelineDayEndIso: string;
+  timelineDayStartIso: string;
+  timelinePauses: PauseRow[];
+  timelineSessions: WorkerSession[];
 };
 
-export function WorkerDashboard({ fullName, sessions, activePause }: WorkerDashboardProps) {
+export function WorkerDashboard({
+  fullName,
+  sessions,
+  activePause,
+  timelineDayEndIso,
+  timelineDayStartIso,
+  timelinePauses,
+  timelineSessions
+}: WorkerDashboardProps) {
   const [remaining, setRemaining] = useState(() => getRemaining(activePause?.end_time));
   const [showPauseForm, setShowPauseForm] = useState(false);
   const [startTime, setStartTime] = useState("");
@@ -231,6 +244,20 @@ export function WorkerDashboard({ fullName, sessions, activePause }: WorkerDashb
             <Metric label={t("excavatorHours")} value={formatHours(grandTotal.excavatorHours)} />
             <Metric label={t("grandTotal")} value={`${formatHours(grandTotal.totalHours)}h / ${formatMoney(grandTotal.totalAmount)}`} />
           </div>
+
+          <TimelineChart
+            dayEndIso={timelineDayEndIso}
+            dayStartIso={timelineDayStartIso}
+            labels={{
+              excavator: t("excavatorTimeline"),
+              idle: t("idle"),
+              manual: t("manualTimeline"),
+              pause: t("pauseTimeline"),
+              title: t("todayTimeline")
+            }}
+            pauses={timelinePauses}
+            sessions={timelineSessions}
+          />
 
           <SummaryTable title={t("byDay")} buckets={daySummary} t={t} />
           <SummaryTable title={t("byWeek")} buckets={weekSummary} t={t} />

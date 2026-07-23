@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { signOut } from "@/app/actions";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { TimelineChart } from "@/components/timeline-chart";
 import {
   buildHoursSummary,
   durationHours,
@@ -34,10 +35,23 @@ type ClientDashboardProps = {
   fullName: string;
   pauses: ClientPause[];
   sessions: ClientSession[];
+  timelineDayEndIso: string;
+  timelineDayStartIso: string;
+  timelinePauses: ClientPause[];
+  timelineSessions: ClientSession[];
   todaySessions: ClientSession[];
 };
 
-export function ClientDashboard({ fullName, pauses, sessions, todaySessions }: ClientDashboardProps) {
+export function ClientDashboard({
+  fullName,
+  pauses,
+  sessions,
+  timelineDayEndIso,
+  timelineDayStartIso,
+  timelinePauses,
+  timelineSessions,
+  todaySessions
+}: ClientDashboardProps) {
   const { language, setLanguage, t } = useLanguage();
   const locale = localeForLanguage(language);
   const daySummary = useMemo(() => buildHoursSummary(sessions, "day", locale), [locale, sessions]);
@@ -73,6 +87,20 @@ export function ClientDashboard({ fullName, pauses, sessions, todaySessions }: C
             <MetricBlock label={t("combinedHours")} value={formatHours(todayTotal.combined)} />
           </div>
         </section>
+
+        <TimelineChart
+          dayEndIso={timelineDayEndIso}
+          dayStartIso={timelineDayStartIso}
+          labels={{
+            excavator: t("excavatorTimeline"),
+            idle: t("idle"),
+            manual: t("manualTimeline"),
+            pause: t("pauseTimeline"),
+            title: t("todayTimeline")
+          }}
+          pauses={timelinePauses}
+          sessions={timelineSessions}
+        />
 
         <section className="grid gap-5 lg:grid-cols-2">
           <SummaryTable title={t("hoursByDay")} buckets={daySummary} t={t} />
