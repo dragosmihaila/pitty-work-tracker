@@ -17,6 +17,7 @@ import { usePlatformStyle } from "@/lib/use-platform-style";
 
 export type ClientSession = {
   worker_id: string;
+  full_name: string;
   work_type: WorkType;
   start_time: string;
   end_time: string;
@@ -24,6 +25,7 @@ export type ClientSession = {
 
 export type ClientPause = {
   worker_id: string;
+  full_name: string;
   start_time: string;
   end_time: string;
 };
@@ -32,14 +34,15 @@ type ClientDashboardProps = {
   fullName: string;
   pauses: ClientPause[];
   sessions: ClientSession[];
+  todaySessions: ClientSession[];
 };
 
-export function ClientDashboard({ fullName, pauses, sessions }: ClientDashboardProps) {
+export function ClientDashboard({ fullName, pauses, sessions, todaySessions }: ClientDashboardProps) {
   const { language, setLanguage, t } = useLanguage();
   const locale = localeForLanguage(language);
   const daySummary = useMemo(() => buildHoursSummary(sessions, "day", locale), [locale, sessions]);
   const weekSummary = useMemo(() => buildHoursSummary(sessions, "week", locale), [locale, sessions]);
-  const grandTotal = useMemo(() => grandHoursTotal(sessions), [sessions]);
+  const todayTotal = useMemo(() => grandHoursTotal(todaySessions), [todaySessions]);
   const platformStyle = usePlatformStyle();
 
   return (
@@ -62,10 +65,13 @@ export function ClientDashboard({ fullName, pauses, sessions }: ClientDashboardP
       </header>
 
       <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-5">
-        <section className="grid gap-3 sm:grid-cols-3">
-          <Metric label={t("manualHours")} value={formatHours(grandTotal.manual)} />
-          <Metric label={t("excavatorHours")} value={formatHours(grandTotal.excavator)} />
-          <Metric label={t("combinedHours")} value={formatHours(grandTotal.combined)} />
+        <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="label">{t("today")}</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <MetricBlock label={t("manualHours")} value={formatHours(todayTotal.manual)} />
+            <MetricBlock label={t("excavatorHours")} value={formatHours(todayTotal.excavator)} />
+            <MetricBlock label={t("combinedHours")} value={formatHours(todayTotal.combined)} />
+          </div>
         </section>
 
         <section className="grid gap-5 lg:grid-cols-2">
@@ -94,7 +100,7 @@ export function ClientDashboard({ fullName, pauses, sessions }: ClientDashboardP
                     className="border-t border-slate-100"
                     key={`${session.worker_id}-${session.start_time}-${session.end_time}`}
                   >
-                    <td className="px-4 py-3 font-mono text-xs">{session.worker_id}</td>
+                    <td className="px-4 py-3">{session.full_name}</td>
                     <td className="px-4 py-3">{t(session.work_type)}</td>
                     <td className="px-4 py-3">{formatDateTime(session.start_time)}</td>
                     <td className="px-4 py-3">{formatDateTime(session.end_time)}</td>
@@ -130,7 +136,7 @@ export function ClientDashboard({ fullName, pauses, sessions }: ClientDashboardP
               <tbody>
                 {pauses.map((pause) => (
                   <tr className="border-t border-slate-100" key={`${pause.worker_id}-${pause.start_time}`}>
-                    <td className="px-4 py-3 font-mono text-xs">{pause.worker_id}</td>
+                    <td className="px-4 py-3">{pause.full_name}</td>
                     <td className="px-4 py-3">{formatDateTime(pause.start_time)}</td>
                     <td className="px-4 py-3">{formatDateTime(pause.end_time)}</td>
                     <td className="px-4 py-3">{formatDurationMinutes(pause.start_time, pause.end_time)}</td>
@@ -152,11 +158,11 @@ export function ClientDashboard({ fullName, pauses, sessions }: ClientDashboardP
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function MetricBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="label">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+    <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+      <p className="text-xs font-semibold text-slate-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-slate-950">{value}</p>
     </div>
   );
 }
