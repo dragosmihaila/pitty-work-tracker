@@ -2,7 +2,7 @@
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { signOut } from "@/app/actions";
-import { logWorkSession, startPause, updatePauseEnd } from "@/app/worker/actions";
+import { logWorkSession, startPause, stopPause, updatePauseEnd } from "@/app/worker/actions";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { durationHours, formatDateTime, formatHours } from "@/lib/date-summary";
 import { useLanguage } from "@/lib/i18n";
@@ -95,16 +95,24 @@ export function WorkerDashboard({ fullName, sessions, activePause }: WorkerDashb
                   <p className="mt-1 text-lg font-semibold text-meadow">{t("readyToLogWork")}</p>
                 )}
               </div>
-              <div>
-                <button
-                  className="btn-secondary w-full sm:w-auto"
-                  disabled={paused}
-                  onClick={() => setShowPauseForm((value) => !value)}
-                  type="button"
-                >
-                  {t("startPause")}
-                </button>
-              </div>
+              {paused && activePause ? (
+                <form action={stopPause}>
+                  <input name="pause_id" type="hidden" value={activePause.id} />
+                  <button className="btn-primary w-full bg-clay hover:bg-clay/90 sm:w-auto" type="submit">
+                    {t("stopPause")}
+                  </button>
+                </form>
+              ) : (
+                <div>
+                  <button
+                    className="btn-secondary w-full sm:w-auto"
+                    onClick={() => setShowPauseForm((value) => !value)}
+                    type="button"
+                  >
+                    {t("startPause")}
+                  </button>
+                </div>
+              )}
             </div>
 
             {showPauseForm && !paused ? (

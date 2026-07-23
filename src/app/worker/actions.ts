@@ -124,6 +124,31 @@ export async function startPause(formData: FormData) {
   revalidatePath("/worker");
 }
 
+export async function stopPause(formData: FormData) {
+  const { supabase, user } = await requireRole("worker");
+  const pauseId = String(formData.get("pause_id") ?? "");
+  const now = new Date().toISOString();
+
+  if (!pauseId) {
+    throw new Error("Choose an active pause to stop.");
+  }
+
+  const { error } = await supabase
+    .from("pauses")
+    .update({ end_time: now })
+    .eq("id", pauseId)
+    .eq("worker_id", user.id)
+    .lte("start_time", now)
+    .gt("end_time", now);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/worker");
+  revalidatePath("/client");
+}
+
 export async function updatePauseEnd(formData: FormData) {
   const { supabase, user } = await requireRole("worker");
   const pauseId = String(formData.get("pause_id") ?? "");
