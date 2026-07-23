@@ -18,12 +18,19 @@ export type ClientSession = {
   end_time: string;
 };
 
+export type ClientPause = {
+  worker_id: string;
+  start_time: string;
+  end_time: string;
+};
+
 type ClientDashboardProps = {
   fullName: string;
+  pauses: ClientPause[];
   sessions: ClientSession[];
 };
 
-export function ClientDashboard({ fullName, sessions }: ClientDashboardProps) {
+export function ClientDashboard({ fullName, pauses, sessions }: ClientDashboardProps) {
   const daySummary = useMemo(() => buildHoursSummary(sessions, "day"), [sessions]);
   const weekSummary = useMemo(() => buildHoursSummary(sessions, "week"), [sessions]);
   const grandTotal = useMemo(() => grandHoursTotal(sessions), [sessions]);
@@ -95,6 +102,41 @@ export function ClientDashboard({ fullName, sessions }: ClientDashboardProps) {
             </table>
           </div>
         </section>
+
+        <section className="rounded-md border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 p-4">
+            <p className="label">Pauses</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Worker</th>
+                  <th className="px-4 py-3">Start</th>
+                  <th className="px-4 py-3">End</th>
+                  <th className="px-4 py-3">Duration</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pauses.map((pause) => (
+                  <tr className="border-t border-slate-100" key={`${pause.worker_id}-${pause.start_time}`}>
+                    <td className="px-4 py-3 font-mono text-xs">{pause.worker_id}</td>
+                    <td className="px-4 py-3">{formatDateTime(pause.start_time)}</td>
+                    <td className="px-4 py-3">{formatDateTime(pause.end_time)}</td>
+                    <td className="px-4 py-3">{formatHours(durationHours(pause.start_time, pause.end_time))}</td>
+                  </tr>
+                ))}
+                {pauses.length === 0 ? (
+                  <tr>
+                    <td className="px-4 py-6 text-center text-slate-500" colSpan={4}>
+                      No pauses yet.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </main>
   );
@@ -153,4 +195,3 @@ function SummaryTable({
     </div>
   );
 }
-

@@ -6,6 +6,7 @@ export type WorkerSession = {
   work_type: WorkType;
   start_time: string;
   end_time: string;
+  /** Stored in the database as amount_eur for compatibility; interpreted as an hourly rate. */
   amount_eur: number;
 };
 
@@ -34,18 +35,18 @@ export function buildWorkerSummary(sessions: WorkerSession[], mode: "day" | "wee
       totalAmount: 0
     };
     const hours = durationHours(session.start_time, session.end_time);
-    const amount = Number(session.amount_eur);
+    const earnings = Number(session.amount_eur) * hours;
 
     if (session.work_type === "manual") {
       current.manualHours += hours;
-      current.manualAmount += amount;
+      current.manualAmount += earnings;
     } else {
       current.excavatorHours += hours;
-      current.excavatorAmount += amount;
+      current.excavatorAmount += earnings;
     }
 
     current.totalHours += hours;
-    current.totalAmount += amount;
+    current.totalAmount += earnings;
     buckets.set(key, current);
   }
 
@@ -56,18 +57,18 @@ export function grandWorkerTotal(sessions: WorkerSession[]) {
   return sessions.reduce(
     (total, session) => {
       const hours = durationHours(session.start_time, session.end_time);
-      const amount = Number(session.amount_eur);
+      const earnings = Number(session.amount_eur) * hours;
 
       if (session.work_type === "manual") {
         total.manualHours += hours;
-        total.manualAmount += amount;
+        total.manualAmount += earnings;
       } else {
         total.excavatorHours += hours;
-        total.excavatorAmount += amount;
+        total.excavatorAmount += earnings;
       }
 
       total.totalHours += hours;
-      total.totalAmount += amount;
+      total.totalAmount += earnings;
       return total;
     },
     {
@@ -114,4 +115,3 @@ function getWeekNumber(date: Date) {
 function pad(value: number) {
   return String(value).padStart(2, "0");
 }
-

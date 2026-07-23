@@ -55,9 +55,17 @@ export async function logWorkSession(formData: FormData) {
   revalidatePath("/worker");
 }
 
-export async function startPause() {
+export async function startPause(formData: FormData) {
   const { supabase, user } = await requireRole("worker");
-  const now = new Date().toISOString();
+  const durationHours = Number(formData.get("duration_hours"));
+  const start = new Date();
+  const end = new Date(start.getTime() + durationHours * 3_600_000);
+
+  if (!Number.isFinite(durationHours) || durationHours <= 0) {
+    throw new Error("Enter a pause duration greater than zero.");
+  }
+
+  const now = start.toISOString();
 
   const { data: activePause, error: findError } = await supabase
     .from("pauses")
@@ -74,7 +82,8 @@ export async function startPause() {
   if (!activePause) {
     const { error } = await supabase.from("pauses").insert({
       worker_id: user.id,
-      start_time: now
+      start_time: now,
+      end_time: end.toISOString()
     });
 
     if (error) {
@@ -106,4 +115,3 @@ export async function updatePauseEnd(formData: FormData) {
 
   revalidatePath("/worker");
 }
-

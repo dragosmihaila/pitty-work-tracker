@@ -48,13 +48,27 @@ values
 
 The sensitive worker payment value lives only in `public.work_sessions.amount_eur`.
 
-Client users are routed to `/client`, and that route reads only:
+`amount_eur` is interpreted by the app as an hourly rate. Worker earnings are calculated as:
+
+```txt
+amount_eur * hours_worked
+```
+
+Client users are routed to `/client`, and that route reads work sessions only through:
 
 ```ts
 supabase.from("work_sessions_client_view")
 ```
 
 The `work_sessions_client_view` SQL view exposes only `worker_id`, `work_type`, `start_time`, and `end_time`. It has no money column. Client profiles also have no RLS policy allowing direct reads from `public.work_sessions`, so direct table queries do not reveal worker-only values.
+
+The client route reads pauses only through:
+
+```ts
+supabase.from("pauses_client_view")
+```
+
+The `pauses_client_view` SQL view exposes only `worker_id`, `start_time`, and `end_time`. It does not expose raw pause table access.
 
 Worker users are routed to `/worker`, where the base table is used for their own rows and totals.
 

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { signOut } from "@/app/actions";
 import { logWorkSession, startPause, updatePauseEnd } from "@/app/worker/actions";
-import { formatDateTime, formatHours } from "@/lib/date-summary";
+import { durationHours, formatDateTime, formatHours } from "@/lib/date-summary";
 import {
   buildWorkerSummary,
   formatMoney,
@@ -26,6 +26,7 @@ type WorkerDashboardProps = {
 
 export function WorkerDashboard({ fullName, sessions, activePause }: WorkerDashboardProps) {
   const [remaining, setRemaining] = useState(() => getRemaining(activePause?.end_time));
+  const [showPauseForm, setShowPauseForm] = useState(false);
   const paused = Boolean(activePause && remaining.totalMs > 0);
   const daySummary = useMemo(() => buildWorkerSummary(sessions, "day"), [sessions]);
   const weekSummary = useMemo(() => buildWorkerSummary(sessions, "week"), [sessions]);
@@ -69,12 +70,39 @@ export function WorkerDashboard({ fullName, sessions, activePause }: WorkerDashb
                   <p className="mt-1 text-lg font-semibold text-meadow">Ready to log work</p>
                 )}
               </div>
-              <form action={startPause}>
-                <button className="btn-secondary w-full sm:w-auto" disabled={paused} type="submit">
-                  Start 24-hour pause
+              <div>
+                <button
+                  className="btn-secondary w-full sm:w-auto"
+                  disabled={paused}
+                  onClick={() => setShowPauseForm((value) => !value)}
+                  type="button"
+                >
+                  Start pause
+                </button>
+              </div>
+            </div>
+
+            {showPauseForm && !paused ? (
+              <form className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]" action={startPause}>
+                <div className="space-y-2">
+                  <label className="label" htmlFor="duration_hours">
+                    Duration hours
+                  </label>
+                  <input
+                    className="field"
+                    id="duration_hours"
+                    min="0.25"
+                    name="duration_hours"
+                    step="0.25"
+                    type="number"
+                    required
+                  />
+                </div>
+                <button className="btn-primary self-end" type="submit">
+                  Save pause
                 </button>
               </form>
-            </div>
+            ) : null}
 
             {activePause ? (
               <form className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]" action={updatePauseEnd}>
@@ -130,7 +158,7 @@ export function WorkerDashboard({ fullName, sessions, activePause }: WorkerDashb
               </div>
               <div className="space-y-2">
                 <label className="label" htmlFor="amount_eur">
-                  Amount EUR
+                  Rate (EUR/hour)
                 </label>
                 <input
                   className="field"
@@ -174,22 +202,29 @@ export function WorkerDashboard({ fullName, sessions, activePause }: WorkerDashb
                     <th className="px-4 py-3">Start</th>
                     <th className="px-4 py-3">End</th>
                     <th className="px-4 py-3">Hours</th>
-                    <th className="px-4 py-3">Amount</th>
+                    <th className="px-4 py-3">Rate</th>
+                    <th className="px-4 py-3">Earnings</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sessions.map((session) => (
-                    <tr className="border-t border-slate-100" key={session.id}>
-                      <td className="px-4 py-3 capitalize">{session.work_type}</td>
-                      <td className="px-4 py-3">{formatDateTime(session.start_time)}</td>
-                      <td className="px-4 py-3">{formatDateTime(session.end_time)}</td>
-                      <td className="px-4 py-3">{formatHours((new Date(session.end_time).getTime() - new Date(session.start_time).getTime()) / 3_600_000)}</td>
-                      <td className="px-4 py-3">{formatMoney(Number(session.amount_eur))}</td>
-                    </tr>
-                  ))}
+                  {sessions.map((session) => {
+                    const hours = durationHours(session.start_time, session.end_time);
+                    const rate = Number(session.amount_eur);
+
+                    return (
+                      <tr className="border-t border-slate-100" key={session.id}>
+                        <td className="px-4 py-3 capitalize">{session.work_type}</td>
+                        <td className="px-4 py-3">{formatDateTime(session.start_time)}</td>
+                        <td className="px-4 py-3">{formatDateTime(session.end_time)}</td>
+                        <td className="px-4 py-3">{formatHours(hours)}</td>
+                        <td className="px-4 py-3">{formatMoney(rate)}</td>
+                        <td className="px-4 py-3">{formatMoney(rate * hours)}</td>
+                      </tr>
+                    );
+                  })}
                   {sessions.length === 0 ? (
                     <tr>
-                      <td className="px-4 py-6 text-center text-slate-500" colSpan={5}>
+                      <td className="px-4 py-6 text-center text-slate-500" colSpan={6}>
                         No sessions yet.
                       </td>
                     </tr>
@@ -233,7 +268,7 @@ function SummaryTable({
               <th className="px-4 py-3">Manual</th>
               <th className="px-4 py-3">Excavator</th>
               <th className="px-4 py-3">Total hours</th>
-              <th className="px-4 py-3">Total amount</th>
+              <th className="px-4 py-3">Total earnings</th>
             </tr>
           </thead>
           <tbody>
@@ -282,4 +317,3 @@ function toDateTimeLocal(value: string) {
   const offsetMs = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 }
-
