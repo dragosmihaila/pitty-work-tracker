@@ -235,6 +235,14 @@ export function useLanguage() {
   return { language, setLanguage, t };
 }
 
+export function localeForLanguage(language: Language) {
+  return {
+    en: "en-US",
+    de: "de-DE",
+    ro: "ro-RO"
+  }[language];
+}
+
 function isLanguage(value: string | null): value is Language {
   return value === "en" || value === "de" || value === "ro";
 }

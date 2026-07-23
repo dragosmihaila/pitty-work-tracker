@@ -7,11 +7,12 @@ import {
   buildHoursSummary,
   durationHours,
   formatDateTime,
+  formatDurationMinutes,
   formatHours,
   grandHoursTotal,
   type WorkType
 } from "@/lib/date-summary";
-import { useLanguage } from "@/lib/i18n";
+import { localeForLanguage, useLanguage } from "@/lib/i18n";
 import { usePlatformStyle } from "@/lib/use-platform-style";
 
 export type ClientSession = {
@@ -34,10 +35,11 @@ type ClientDashboardProps = {
 };
 
 export function ClientDashboard({ fullName, pauses, sessions }: ClientDashboardProps) {
-  const daySummary = useMemo(() => buildHoursSummary(sessions, "day"), [sessions]);
-  const weekSummary = useMemo(() => buildHoursSummary(sessions, "week"), [sessions]);
-  const grandTotal = useMemo(() => grandHoursTotal(sessions), [sessions]);
   const { language, setLanguage, t } = useLanguage();
+  const locale = localeForLanguage(language);
+  const daySummary = useMemo(() => buildHoursSummary(sessions, "day", locale), [locale, sessions]);
+  const weekSummary = useMemo(() => buildHoursSummary(sessions, "week", locale), [locale, sessions]);
+  const grandTotal = useMemo(() => grandHoursTotal(sessions), [sessions]);
   const platformStyle = usePlatformStyle();
 
   return (
@@ -131,7 +133,7 @@ export function ClientDashboard({ fullName, pauses, sessions }: ClientDashboardP
                     <td className="px-4 py-3 font-mono text-xs">{pause.worker_id}</td>
                     <td className="px-4 py-3">{formatDateTime(pause.start_time)}</td>
                     <td className="px-4 py-3">{formatDateTime(pause.end_time)}</td>
-                    <td className="px-4 py-3">{formatHours(durationHours(pause.start_time, pause.end_time))}</td>
+                    <td className="px-4 py-3">{formatDurationMinutes(pause.start_time, pause.end_time)}</td>
                   </tr>
                 ))}
                 {pauses.length === 0 ? (
