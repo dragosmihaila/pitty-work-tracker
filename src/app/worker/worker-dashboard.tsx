@@ -5,7 +5,7 @@ import { signOut } from "@/app/actions";
 import { logWorkSession, startPause, stopPause, updatePauseEnd } from "@/app/worker/actions";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { TimelineChart } from "@/components/timeline-chart";
-import { durationHours, formatDateTime, formatHours } from "@/lib/date-summary";
+import { durationHours, formatDateTime, formatDurationMinutes, formatHours } from "@/lib/date-summary";
 import { useLanguage } from "@/lib/i18n";
 import { usePlatformStyle } from "@/lib/use-platform-style";
 import {
@@ -24,6 +24,7 @@ export type PauseRow = {
 
 type WorkerDashboardProps = {
   fullName: string;
+  pauses: PauseRow[];
   sessions: WorkerSession[];
   activePause: PauseRow | null;
   timelineDayEndIso: string;
@@ -34,6 +35,7 @@ type WorkerDashboardProps = {
 
 export function WorkerDashboard({
   fullName,
+  pauses,
   sessions,
   activePause,
   timelineDayEndIso,
@@ -43,6 +45,7 @@ export function WorkerDashboard({
 }: WorkerDashboardProps) {
   const [remaining, setRemaining] = useState(() => getRemaining(activePause?.end_time));
   const [showPauseForm, setShowPauseForm] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const paused = Boolean(activePause && remaining.totalMs > 0);
@@ -94,8 +97,9 @@ export function WorkerDashboard({
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-6xl gap-5 px-4 py-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <section className="space-y-5">
+      <div className="mx-auto w-full max-w-6xl px-4 py-5">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+          <section className="space-y-5">
           <div className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -236,13 +240,13 @@ export function WorkerDashboard({
             </fieldset>
             {paused ? <p className="mt-3 text-sm text-clay">{t("disabledWhilePaused")}</p> : null}
           </form>
-        </section>
+          </section>
 
-        <section className="space-y-5">
+          <section className="space-y-5">
           <div className="grid gap-3 sm:grid-cols-3">
             <Metric label={t("manualHours")} value={formatHours(grandTotal.manualHours)} />
             <Metric label={t("excavatorHours")} value={formatHours(grandTotal.excavatorHours)} />
-            <Metric label={t("grandTotal")} value={`${formatHours(grandTotal.totalHours)}h / ${formatMoney(grandTotal.totalAmount)}`} />
+            <Metric label={t("grandTotal")} value={`${formatHours(grandTotal.totalHours)} / ${formatMoney(grandTotal.totalAmount)}`} />
           </div>
 
           <TimelineChart
@@ -261,49 +265,31 @@ export function WorkerDashboard({
 
           <SummaryTable title={t("byDay")} buckets={daySummary} t={t} />
           <SummaryTable title={t("byWeek")} buckets={weekSummary} t={t} />
+          </section>
+        </div>
 
-          <div className="rounded-md border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 p-4">
-              <p className="label">{t("recentSessions")}</p>
+        <section className="mt-5 space-y-3">
+          <div
+            className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+              showHistory ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+            }`}
+          >
+            <div className="min-h-0 overflow-hidden">
+              <div className="grid gap-5 lg:grid-cols-2">
+                <RecentSessionsTable sessions={sessions} t={t} />
+                <PausesTable pauses={pauses} t={t} />
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3">{t("type")}</th>
-                    <th className="px-4 py-3">{t("start")}</th>
-                    <th className="px-4 py-3">{t("end")}</th>
-                    <th className="px-4 py-3">{t("hours")}</th>
-                    <th className="px-4 py-3">{t("rateShort")}</th>
-                    <th className="px-4 py-3">{t("earnings")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sessions.map((session) => {
-                    const hours = durationHours(session.start_time, session.end_time);
-                    const rate = Number(session.amount_eur);
-
-                    return (
-                      <tr className="border-t border-slate-100" key={session.id}>
-                        <td className="px-4 py-3">{t(session.work_type)}</td>
-                        <td className="px-4 py-3">{formatDateTime(session.start_time)}</td>
-                        <td className="px-4 py-3">{formatDateTime(session.end_time)}</td>
-                        <td className="px-4 py-3">{formatHours(hours)}</td>
-                        <td className="px-4 py-3">{formatMoney(rate)}</td>
-                        <td className="px-4 py-3">{formatMoney(rate * hours)}</td>
-                      </tr>
-                    );
-                  })}
-                  {sessions.length === 0 ? (
-                    <tr>
-                      <td className="px-4 py-6 text-center text-slate-500" colSpan={6}>
-                        {t("noSessions")}
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
+          </div>
+          <div className="flex justify-center">
+            <button
+              aria-expanded={showHistory}
+              className="btn-secondary min-w-36"
+              onClick={() => setShowHistory((value) => !value)}
+              type="button"
+            >
+              {showHistory ? t("hideHistory") : t("history")}
+            </button>
           </div>
         </section>
       </div>
@@ -350,12 +336,12 @@ function SummaryTable({
               <tr className="border-t border-slate-100" key={bucket.label}>
                 <td className="px-4 py-3 font-medium">{bucket.label}</td>
                 <td className="px-4 py-3">
-                  {formatHours(bucket.manualHours)}h / {formatMoney(bucket.manualAmount)}
+                  {formatHours(bucket.manualHours)} / {formatMoney(bucket.manualAmount)}
                 </td>
                 <td className="px-4 py-3">
-                  {formatHours(bucket.excavatorHours)}h / {formatMoney(bucket.excavatorAmount)}
+                  {formatHours(bucket.excavatorHours)} / {formatMoney(bucket.excavatorAmount)}
                 </td>
-                <td className="px-4 py-3">{formatHours(bucket.totalHours)}h</td>
+                <td className="px-4 py-3">{formatHours(bucket.totalHours)}</td>
                 <td className="px-4 py-3">{formatMoney(bucket.totalAmount)}</td>
               </tr>
             ))}
@@ -363,6 +349,118 @@ function SummaryTable({
               <tr>
                 <td className="px-4 py-6 text-center text-slate-500" colSpan={5}>
                   {t("noSummary")}
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function RecentSessionsTable({
+  sessions,
+  t
+}: {
+  sessions: WorkerSession[];
+  t: (key: string, values?: Record<string, string | number>) => string;
+}) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 p-4">
+        <p className="label">{t("recentSessions")}</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] table-fixed text-left text-sm">
+          <colgroup>
+            <col className="w-[15%]" />
+            <col className="w-[24%]" />
+            <col className="w-[24%]" />
+            <col className="w-[13%]" />
+            <col className="w-[12%]" />
+            <col className="w-[12%]" />
+          </colgroup>
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="px-4 py-3">{t("type")}</th>
+              <th className="px-4 py-3">{t("start")}</th>
+              <th className="px-4 py-3">{t("end")}</th>
+              <th className="px-4 py-3 text-right">{t("hours")}</th>
+              <th className="px-4 py-3 text-right">{t("rateShort")}</th>
+              <th className="px-4 py-3 text-right">{t("earnings")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sessions.map((session) => {
+              const hours = durationHours(session.start_time, session.end_time);
+              const rate = Number(session.amount_eur);
+
+              return (
+                <tr className="border-t border-slate-100" key={session.id}>
+                  <td className="px-4 py-3">{t(session.work_type)}</td>
+                  <td className="px-4 py-3">{formatDateTime(session.start_time)}</td>
+                  <td className="px-4 py-3">{formatDateTime(session.end_time)}</td>
+                  <td className="px-4 py-3 text-right font-medium tabular-nums">{formatHours(hours)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{formatMoney(rate)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{formatMoney(rate * hours)}</td>
+                </tr>
+              );
+            })}
+            {sessions.length === 0 ? (
+              <tr>
+                <td className="px-4 py-6 text-center text-slate-500" colSpan={6}>
+                  {t("noSessions")}
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function PausesTable({
+  pauses,
+  t
+}: {
+  pauses: PauseRow[];
+  t: (key: string, values?: Record<string, string | number>) => string;
+}) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 p-4">
+        <p className="label">{t("pauses")}</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] table-fixed text-left text-sm">
+          <colgroup>
+            <col className="w-[34%]" />
+            <col className="w-[34%]" />
+            <col className="w-[32%]" />
+          </colgroup>
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="px-4 py-3">{t("start")}</th>
+              <th className="px-4 py-3">{t("end")}</th>
+              <th className="px-4 py-3 text-right">{t("duration")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pauses.map((pause) => (
+              <tr className="border-t border-slate-100" key={pause.id}>
+                <td className="px-4 py-3">{formatDateTime(pause.start_time)}</td>
+                <td className="px-4 py-3">{formatDateTime(pause.end_time)}</td>
+                <td className="px-4 py-3 text-right font-medium tabular-nums">
+                  {formatDurationMinutes(pause.start_time, pause.end_time)}
+                </td>
+              </tr>
+            ))}
+            {pauses.length === 0 ? (
+              <tr>
+                <td className="px-4 py-6 text-center text-slate-500" colSpan={3}>
+                  {t("noPauses")}
                 </td>
               </tr>
             ) : null}

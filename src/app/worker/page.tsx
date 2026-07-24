@@ -15,6 +15,7 @@ export default async function WorkerPage() {
     { data: sessions, error: sessionsError },
     { data: timelineSessions, error: timelineSessionsError },
     { data: timelinePauses, error: timelinePausesError },
+    { data: pauses, error: pausesError },
     { data: activePause, error: pauseError }
   ] =
     await Promise.all([
@@ -44,6 +45,12 @@ export default async function WorkerPage() {
         .from("pauses")
         .select("id, worker_id, start_time, end_time")
         .eq("worker_id", user.id)
+        .order("start_time", { ascending: false })
+        .returns<PauseRow[]>(),
+      supabase
+        .from("pauses")
+        .select("id, worker_id, start_time, end_time")
+        .eq("worker_id", user.id)
         .lte("start_time", now)
         .gt("end_time", now)
         .order("end_time", { ascending: false })
@@ -63,6 +70,10 @@ export default async function WorkerPage() {
     throw new Error(timelinePausesError.message);
   }
 
+  if (pausesError) {
+    throw new Error(pausesError.message);
+  }
+
   if (pauseError) {
     throw new Error(pauseError.message);
   }
@@ -71,6 +82,7 @@ export default async function WorkerPage() {
     <WorkerDashboard
       activePause={activePause ?? null}
       fullName={profile.full_name}
+      pauses={pauses ?? []}
       sessions={sessions ?? []}
       timelineDayEndIso={todayRange.endIso}
       timelineDayStartIso={todayRange.startIso}

@@ -63,6 +63,82 @@ button {
   font-weight: 700;
 }
 
+.client-dashboard .client-panel {
+  overflow: hidden;
+}
+
+.client-dashboard .client-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.client-dashboard .client-table th,
+.client-dashboard .client-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.client-dashboard .client-table th {
+  letter-spacing: 0;
+}
+
+.client-dashboard.os-default .client-panel {
+  border-radius: 8px;
+}
+
+.client-dashboard.os-default .client-table thead {
+  background: #f8fafc;
+}
+
+.client-dashboard.os-default .client-table th,
+.client-dashboard.os-default .client-table td {
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+
+.client-dashboard.os-ios {
+  background: #f2f2f7;
+}
+
+.client-dashboard.os-ios header {
+  border-color: rgb(209 213 219 / 0.8);
+  background: rgb(255 255 255 / 0.78);
+  backdrop-filter: blur(18px);
+}
+
+.client-dashboard.os-ios .client-panel {
+  border-color: rgb(209 213 219 / 0.7);
+  border-radius: 18px;
+  box-shadow: 0 14px 34px rgb(15 23 42 / 0.08);
+}
+
+.client-dashboard.os-ios .client-metric {
+  border-color: rgb(203 213 225 / 0.7);
+  border-radius: 16px;
+  background: rgb(248 250 252 / 0.86);
+}
+
+.client-dashboard.os-ios .client-table thead {
+  background: rgb(248 250 252 / 0.88);
+}
+
+.client-dashboard.os-ios .client-table th {
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.client-dashboard.os-ios .client-table th,
+.client-dashboard.os-ios .client-table td {
+  padding: 0.95rem 1rem;
+}
+
+.client-dashboard.os-ios .client-table tbody tr {
+  border-color: rgb(226 232 240 / 0.84);
+}
+
 .time-popover {
   transform: translateY(6px) scale(0.98);
   opacity: 0;

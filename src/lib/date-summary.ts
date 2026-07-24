@@ -21,10 +21,11 @@ export function durationHours(startTime: string, endTime: string) {
 }
 
 export function formatHours(hours: number) {
-  return new Intl.NumberFormat(undefined, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1
-  }).format(hours);
+  const totalMinutes = Number.isFinite(hours) ? Math.round(Math.max(0, hours) * 60) : 0;
+  const start = new Date(0).toISOString();
+  const end = new Date(totalMinutes * 60_000).toISOString();
+
+  return formatDurationMinutes(start, end);
 }
 
 export function formatDateTime(value: string) {
@@ -41,15 +42,7 @@ export function formatDurationMinutes(startTime: string, endTime: string) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
 
-  if (hours === 0) {
-    return `${totalMinutes} min`;
-  }
-
-  if (minutes === 0) {
-    return `${hours}h`;
-  }
-
-  return `${hours}h ${minutes}min`;
+  return `${hours}h ${String(minutes).padStart(2, "0")}min`;
 }
 
 export function buildHoursSummary(sessions: SessionForHours[], mode: "day" | "week", locale?: string) {
