@@ -13,6 +13,7 @@ export default async function WorkerPage() {
 
   const [
     { data: sessions, error: sessionsError },
+    { data: todaySessions, error: todaySessionsError },
     { data: timelineSessions, error: timelineSessionsError },
     { data: timelinePauses, error: timelinePausesError },
     { data: pauses, error: pausesError },
@@ -23,6 +24,14 @@ export default async function WorkerPage() {
         .from("work_sessions")
         .select("id, worker_id, work_type, start_time, end_time, amount_eur")
         .eq("worker_id", user.id)
+        .order("start_time", { ascending: false })
+        .returns<WorkerSession[]>(),
+      supabase
+        .from("work_sessions")
+        .select("id, worker_id, work_type, start_time, end_time, amount_eur")
+        .eq("worker_id", user.id)
+        .gte("start_time", todayRange.startIso)
+        .lt("start_time", todayRange.endIso)
         .order("start_time", { ascending: false })
         .returns<WorkerSession[]>(),
       supabase
@@ -62,6 +71,10 @@ export default async function WorkerPage() {
     throw new Error(sessionsError.message);
   }
 
+  if (todaySessionsError) {
+    throw new Error(todaySessionsError.message);
+  }
+
   if (timelineSessionsError) {
     throw new Error(timelineSessionsError.message);
   }
@@ -84,6 +97,7 @@ export default async function WorkerPage() {
       fullName={profile.full_name}
       pauses={pauses ?? []}
       sessions={sessions ?? []}
+      todaySessions={todaySessions ?? []}
       timelineDayEndIso={todayRange.endIso}
       timelineDayStartIso={todayRange.startIso}
       timelinePauses={timelinePauses ?? []}

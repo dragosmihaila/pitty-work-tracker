@@ -11,7 +11,7 @@ import {
   formatDurationMinutes,
   formatHours
 } from "@/lib/date-summary";
-import { useLanguage } from "@/lib/i18n";
+import { localeForLanguage, useLanguage } from "@/lib/i18n";
 import { usePlatformStyle } from "@/lib/use-platform-style";
 import {
   buildWorkerSummary,
@@ -31,6 +31,7 @@ type WorkerDashboardProps = {
   fullName: string;
   pauses: PauseRow[];
   sessions: WorkerSession[];
+  todaySessions: WorkerSession[];
   activePause: PauseRow | null;
   timelineDayEndIso: string;
   timelineDayStartIso: string;
@@ -42,6 +43,7 @@ export function WorkerDashboard({
   fullName,
   pauses,
   sessions,
+  todaySessions,
   activePause,
   timelineDayEndIso,
   timelineDayStartIso,
@@ -54,9 +56,10 @@ export function WorkerDashboard({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const paused = Boolean(activePause && remaining.totalMs > 0);
-  const weekSummary = useMemo(() => buildWorkerSummary(sessions, "week"), [sessions]);
-  const grandTotal = useMemo(() => grandWorkerTotal(sessions), [sessions]);
   const { language, setLanguage, t } = useLanguage();
+  const locale = localeForLanguage(language);
+  const weekSummary = useMemo(() => buildWorkerSummary(sessions, "week", locale), [locale, sessions]);
+  const todayTotal = useMemo(() => grandWorkerTotal(todaySessions), [todaySessions]);
   const platformStyle = usePlatformStyle();
 
   useEffect(() => {
@@ -247,11 +250,17 @@ export function WorkerDashboard({
           </section>
 
           <section className="space-y-5">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Metric label={t("manualHours")} value={formatHours(grandTotal.manualHours)} />
-            <Metric label={t("excavatorHours")} value={formatHours(grandTotal.excavatorHours)} />
-            <Metric label={t("grandTotal")} value={`${formatHours(grandTotal.totalHours)} / ${formatMoney(grandTotal.totalAmount)}`} />
-          </div>
+          <section className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="label">{t("today")}</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <Metric label={t("manualHours")} value={formatHours(todayTotal.manualHours)} />
+              <Metric label={t("excavatorHours")} value={formatHours(todayTotal.excavatorHours)} />
+              <Metric
+                label={t("grandTotal")}
+                value={`${formatHours(todayTotal.totalHours)} / ${formatMoney(todayTotal.totalAmount)}`}
+              />
+            </div>
+          </section>
 
           <TimelineChart
             dayEndIso={timelineDayEndIso}
@@ -302,9 +311,9 @@ export function WorkerDashboard({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="label">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+    <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+      <p className="text-xs font-semibold text-slate-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-slate-950">{value}</p>
     </div>
   );
 }

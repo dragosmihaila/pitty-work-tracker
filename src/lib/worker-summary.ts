@@ -1,4 +1,4 @@
-import { durationHours, type WorkType } from "@/lib/date-summary";
+import { durationHours, formatWeekRange, getSummaryPeriodKey, type WorkType } from "@/lib/date-summary";
 
 export type WorkerSession = {
   id: string;
@@ -12,6 +12,7 @@ export type WorkerSession = {
 
 export type WorkerMoneyBucket = {
   label: string;
+  sortKey: string;
   manualHours: number;
   excavatorHours: number;
   totalHours: number;
@@ -20,13 +21,14 @@ export type WorkerMoneyBucket = {
   totalAmount: number;
 };
 
-export function buildWorkerSummary(sessions: WorkerSession[], mode: "day" | "week") {
+export function buildWorkerSummary(sessions: WorkerSession[], mode: "day" | "week", locale?: string) {
   const buckets = new Map<string, WorkerMoneyBucket>();
 
   for (const session of sessions) {
-    const key = mode === "day" ? dayKey(session.start_time) : weekKey(session.start_time);
+    const key = getSummaryPeriodKey(session.start_time, mode);
     const current = buckets.get(key) ?? {
       label: key,
+      sortKey: key,
       manualHours: 0,
       excavatorHours: 0,
       totalHours: 0,
@@ -50,7 +52,12 @@ export function buildWorkerSummary(sessions: WorkerSession[], mode: "day" | "wee
     buckets.set(key, current);
   }
 
-  return Array.from(buckets.values()).sort((a, b) => b.label.localeCompare(a.label));
+  return Array.from(buckets.values())
+    .map((bucket) => ({
+      ...bucket,
+      label: mode === "week" ? formatWeekRange(bucket.sortKey, locale) : bucket.label
+    }))
+    .sort((a, b) => b.sortKey.localeCompare(a.sortKey));
 }
 
 export function grandWorkerTotal(sessions: WorkerSession[]) {
@@ -87,31 +94,4 @@ export function formatMoney(value: number) {
     style: "currency",
     currency: "EUR"
   }).format(value);
-}
-
-function dayKey(value: string) {
-  const date = new Date(value);
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-function weekKey(value: string) {
-  const date = new Date(value);
-  const local = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const day = local.getDay() || 7;
-  local.setDate(local.getDate() - day + 1);
-  return `${local.getFullYear()}-W${pad(getWeekNumber(local))}`;
-}
-
-function getWeekNumber(date: Date) {
-  const target = new Date(date.valueOf());
-  const dayNumber = (date.getDay() + 6) % 7;
-  target.setDate(target.getDate() - dayNumber + 3);
-  const firstThursday = new Date(target.getFullYear(), 0, 4);
-  const firstDayNumber = (firstThursday.getDay() + 6) % 7;
-  firstThursday.setDate(firstThursday.getDate() - firstDayNumber + 3);
-  return 1 + Math.round((target.getTime() - firstThursday.getTime()) / 604_800_000);
-}
-
-function pad(value: number) {
-  return String(value).padStart(2, "0");
 }

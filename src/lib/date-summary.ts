@@ -63,7 +63,7 @@ export function buildHoursSummary(sessions: SessionForHours[], mode: "day" | "we
   const buckets = new Map<string, HoursBucket>();
 
   for (const session of sessions) {
-    const key = mode === "day" ? dayKey(session.start_time) : weekKey(session.start_time);
+    const key = getSummaryPeriodKey(session.start_time, mode);
     const current = buckets.get(key) ?? {
       label: key,
       sortKey: key,
@@ -98,6 +98,10 @@ export function grandHoursTotal(sessions: SessionForHours[]) {
   );
 }
 
+export function getSummaryPeriodKey(value: string, mode: "day" | "week") {
+  return mode === "day" ? dayKey(value) : weekKey(value);
+}
+
 function dayKey(value: string) {
   const date = new Date(value);
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -111,7 +115,7 @@ function weekKey(value: string) {
   return `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}`;
 }
 
-function formatWeekRange(mondayKey: string, locale?: string) {
+export function formatWeekRange(mondayKey: string, locale?: string) {
   const [year, month, day] = mondayKey.split("-").map(Number);
   const monday = new Date(year, month - 1, day);
   const sunday = new Date(monday);
