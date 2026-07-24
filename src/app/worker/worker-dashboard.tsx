@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { signOut } from "@/app/actions";
 import { logWorkSession, startPause, stopPause, updatePauseEnd } from "@/app/worker/actions";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -53,14 +54,19 @@ export function WorkerDashboard({
   const [remaining, setRemaining] = useState(() => getRemaining(activePause?.end_time));
   const [showPauseForm, setShowPauseForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [workType, setWorkType] = useState("manual");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [rate, setRate] = useState("");
+  const [isSavingSession, setIsSavingSession] = useState(false);
+  const [workSessionError, setWorkSessionError] = useState("");
   const paused = Boolean(activePause && remaining.totalMs > 0);
   const { language, setLanguage, t } = useLanguage();
   const locale = localeForLanguage(language);
   const weekSummary = useMemo(() => buildWorkerSummary(sessions, "week", locale), [locale, sessions]);
   const todayTotal = useMemo(() => grandWorkerTotal(todaySessions), [todaySessions]);
   const platformStyle = usePlatformStyle();
+  const router = useRouter();
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -70,7 +76,9 @@ export function WorkerDashboard({
     return () => window.clearInterval(timer);
   }, [activePause?.end_time]);
 
-  function updateSubmissionContext(event: FormEvent<HTMLFormElement>) {
+  async function handleWorkSessionSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
     const form = event.currentTarget;
     const dateInput = form.elements.namedItem("session_date");
     const offsetInput = form.elements.namedItem("timezone_offset_minutes");
@@ -82,6 +90,23 @@ export function WorkerDashboard({
 
     if (offsetInput instanceof HTMLInputElement) {
       offsetInput.value = String(now.getTimezoneOffset());
+    }
+
+    setIsSavingSession(true);
+    setWorkSessionError("");
+
+    try {
+      await logWorkSession(new FormData(form));
+      setWorkType("manual");
+      setStartTime("");
+      setEndTime("");
+      setRate("");
+      form.reset();
+      router.refresh();
+    } catch (error) {
+      setWorkSessionError(error instanceof Error ? error.message : "Could not save work session.");
+    } finally {
+      setIsSavingSession(false);
     }
   }
 
@@ -187,8 +212,7 @@ export function WorkerDashboard({
 
           <form
             className="rounded-md border border-slate-200 bg-white p-4 shadow-sm"
-            action={logWorkSession}
-            onSubmit={updateSubmissionContext}
+            onSubmit={handleWorkSessionSubmit}
           >
             <input name="session_date" type="hidden" defaultValue={toLocalDateInputValue(new Date())} />
             <input name="timezone_offset_minutes" type="hidden" defaultValue={String(new Date().getTimezoneOffset())} />
@@ -201,7 +225,14 @@ export function WorkerDashboard({
                 <label className="label" htmlFor="work_type">
                   {t("workType")}
                 </label>
-                <select className="field" id="work_type" name="work_type" defaultValue="manual" required>
+                <select
+                  className="field"
+                  id="work_type"
+                  name="work_type"
+                  onChange={(event) => setWorkType(event.target.value)}
+                  value={workType}
+                  required
+                >
                   <option value="manual">{t("manual")}</option>
                   <option value="excavator">{t("excavator")}</option>
                 </select>
@@ -235,16 +266,19 @@ export function WorkerDashboard({
                   id="amount_eur"
                   min="0"
                   name="amount_eur"
+                  onChange={(event) => setRate(event.target.value)}
                   placeholder={t("ratePlaceholder")}
                   step="0.01"
                   type="number"
+                  value={rate}
                   required
                 />
               </div>
-              <button className="btn-primary w-full" type="submit">
+              <button className="btn-primary w-full" disabled={isSavingSession} type="submit">
                 {t("saveSession")}
               </button>
             </fieldset>
+            {workSessionError ? <p className="mt-3 text-sm text-clay">{workSessionError}</p> : null}
             {paused ? <p className="mt-3 text-sm text-clay">{t("disabledWhilePaused")}</p> : null}
           </form>
           </section>
