@@ -8,6 +8,8 @@
 
 body {
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: hidden;
   background: #f8fafc;
   color: #14213d;
   font-family:
@@ -137,6 +139,86 @@ button {
 
 .client-dashboard.os-ios .client-table tbody tr {
   border-color: rgb(226 232 240 / 0.84);
+}
+
+.compact-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.compact-table th,
+.compact-table td {
+  overflow: hidden;
+  padding: 0.5rem 0.35rem;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: normal;
+  font-size: 0.68rem;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.compact-table th {
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+.worker-dashboard .compact-table th,
+.worker-dashboard .compact-table td,
+.client-dashboard .compact-table th,
+.client-dashboard .compact-table td,
+.client-dashboard.os-ios .compact-table th,
+.client-dashboard.os-ios .compact-table td {
+  padding: 0.5rem 0.35rem;
+  white-space: normal;
+}
+
+.compact-date {
+  display: inline-flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.1rem;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.history-toggle-wrap {
+  width: 100%;
+}
+
+.history-toggle {
+  min-height: 48px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+}
+
+.os-ios .history-toggle {
+  min-height: 52px;
+  border-color: rgb(203 213 225 / 0.72);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 0.9);
+  box-shadow: 0 12px 28px rgb(15 23 42 / 0.08);
+}
+
+@media (min-width: 640px) {
+  .compact-table th,
+  .compact-table td {
+    padding: 0.7rem 0.6rem;
+    font-size: 0.8125rem;
+  }
+
+  .worker-dashboard .compact-table th,
+  .worker-dashboard .compact-table td,
+  .client-dashboard .compact-table th,
+  .client-dashboard .compact-table td,
+  .client-dashboard.os-ios .compact-table th,
+  .client-dashboard.os-ios .compact-table td {
+    padding: 0.7rem 0.6rem;
+  }
+
+  .compact-table th {
+    font-size: 0.68rem;
+  }
 }
 
 .time-popover {

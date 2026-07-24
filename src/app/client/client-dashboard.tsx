@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { signOut } from "@/app/actions";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { TimelineChart } from "@/components/timeline-chart";
 import {
   buildHoursSummary,
   durationHours,
-  formatDateTime,
+  formatCompactDateTime,
   formatDurationMinutes,
   formatHours,
   grandHoursTotal,
@@ -54,10 +54,10 @@ export function ClientDashboard({
 }: ClientDashboardProps) {
   const { language, setLanguage, t } = useLanguage();
   const locale = localeForLanguage(language);
-  const daySummary = useMemo(() => buildHoursSummary(sessions, "day", locale), [locale, sessions]);
   const weekSummary = useMemo(() => buildHoursSummary(sessions, "week", locale), [locale, sessions]);
   const todayTotal = useMemo(() => grandHoursTotal(todaySessions), [todaySessions]);
   const platformStyle = usePlatformStyle();
+  const [showHistory, setShowHistory] = useState(false);
 
   return (
     <main className={`client-dashboard min-h-screen bg-paper os-${platformStyle}`}>
@@ -102,100 +102,32 @@ export function ClientDashboard({
           sessions={timelineSessions}
         />
 
-        <section className="grid gap-5 lg:grid-cols-2">
-          <SummaryTable title={t("hoursByDay")} buckets={daySummary} t={t} />
+        <section>
           <SummaryTable title={t("hoursByWeek")} buckets={weekSummary} t={t} />
         </section>
 
-        <section className="client-panel rounded-md border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 p-4">
-            <p className="label">{t("workSessions")}</p>
+        <section className="space-y-3">
+          <div
+            className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+              showHistory ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+            }`}
+          >
+            <div className="min-h-0 overflow-hidden">
+              <div className="grid gap-5 lg:grid-cols-2">
+                <WorkSessionsTable sessions={sessions} t={t} />
+                <PausesTable pauses={pauses} t={t} />
+              </div>
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="client-table w-full min-w-[760px] table-fixed text-left text-sm">
-              <colgroup>
-                <col className="w-[20%]" />
-                <col className="w-[15%]" />
-                <col className="w-[25%]" />
-                <col className="w-[25%]" />
-                <col className="w-[15%]" />
-              </colgroup>
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">{t("worker")}</th>
-                  <th className="px-4 py-3">{t("type")}</th>
-                  <th className="px-4 py-3">{t("start")}</th>
-                  <th className="px-4 py-3">{t("end")}</th>
-                  <th className="px-4 py-3 text-right">{t("hours")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sessions.map((session) => (
-                  <tr
-                    className="border-t border-slate-100"
-                    key={`${session.worker_id}-${session.start_time}-${session.end_time}`}
-                  >
-                    <td className="px-4 py-3 font-medium">{session.full_name}</td>
-                    <td className="px-4 py-3">{t(session.work_type)}</td>
-                    <td className="px-4 py-3">{formatDateTime(session.start_time)}</td>
-                    <td className="px-4 py-3">{formatDateTime(session.end_time)}</td>
-                    <td className="px-4 py-3 text-right font-medium tabular-nums">
-                      {formatHours(durationHours(session.start_time, session.end_time))}
-                    </td>
-                  </tr>
-                ))}
-                {sessions.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-6 text-center text-slate-500" colSpan={5}>
-                      {t("noWorkSessions")}
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="client-panel rounded-md border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 p-4">
-            <p className="label">{t("pauses")}</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="client-table w-full min-w-[720px] table-fixed text-left text-sm">
-              <colgroup>
-                <col className="w-[22%]" />
-                <col className="w-[28%]" />
-                <col className="w-[28%]" />
-                <col className="w-[22%]" />
-              </colgroup>
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">{t("worker")}</th>
-                  <th className="px-4 py-3">{t("start")}</th>
-                  <th className="px-4 py-3">{t("end")}</th>
-                  <th className="px-4 py-3 text-right">{t("duration")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pauses.map((pause) => (
-                  <tr className="border-t border-slate-100" key={`${pause.worker_id}-${pause.start_time}`}>
-                    <td className="px-4 py-3 font-medium">{pause.full_name}</td>
-                    <td className="px-4 py-3">{formatDateTime(pause.start_time)}</td>
-                    <td className="px-4 py-3">{formatDateTime(pause.end_time)}</td>
-                    <td className="px-4 py-3 text-right font-medium tabular-nums">
-                      {formatDurationMinutes(pause.start_time, pause.end_time)}
-                    </td>
-                  </tr>
-                ))}
-                {pauses.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-6 text-center text-slate-500" colSpan={4}>
-                      {t("noPauses")}
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+          <div className="history-toggle-wrap">
+            <button
+              aria-expanded={showHistory}
+              className="history-toggle btn-secondary w-full"
+              onClick={() => setShowHistory((value) => !value)}
+              type="button"
+            >
+              {showHistory ? t("hideHistory") : t("history")}
+            </button>
           </div>
         </section>
       </div>
@@ -226,8 +158,8 @@ function SummaryTable({
       <div className="border-b border-slate-200 p-4">
         <p className="label">{title}</p>
       </div>
-      <div className="overflow-x-auto">
-        <table className="client-table w-full min-w-[640px] table-fixed text-left text-sm">
+      <div>
+        <table className="client-table compact-table w-full table-fixed text-left text-xs sm:text-sm">
           <colgroup>
             <col className="w-[34%]" />
             <col className="w-[22%]" />
@@ -262,5 +194,136 @@ function SummaryTable({
         </table>
       </div>
     </div>
+  );
+}
+
+function WorkSessionsTable({
+  sessions,
+  t
+}: {
+  sessions: ClientSession[];
+  t: (key: string, values?: Record<string, string | number>) => string;
+}) {
+  return (
+    <div className="client-panel rounded-md border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 p-4">
+        <p className="label">{t("workSessions")}</p>
+      </div>
+      <div>
+        <table className="client-table compact-table w-full table-fixed text-left text-xs sm:text-sm">
+          <colgroup>
+            <col className="w-[20%]" />
+            <col className="w-[15%]" />
+            <col className="w-[20%]" />
+            <col className="w-[20%]" />
+            <col className="w-[25%]" />
+          </colgroup>
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="px-4 py-3">{t("worker")}</th>
+              <th className="px-4 py-3">{t("type")}</th>
+              <th className="px-4 py-3">{t("start")}</th>
+              <th className="px-4 py-3">{t("end")}</th>
+              <th className="px-4 py-3 text-right">{t("hours")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sessions.map((session) => (
+              <tr
+                className="border-t border-slate-100"
+                key={`${session.worker_id}-${session.start_time}-${session.end_time}`}
+              >
+                <td className="px-4 py-3 font-medium">{session.full_name}</td>
+                <td className="px-4 py-3">{t(session.work_type)}</td>
+                <td className="px-4 py-3">
+                  <CompactDateTime value={session.start_time} />
+                </td>
+                <td className="px-4 py-3">
+                  <CompactDateTime value={session.end_time} />
+                </td>
+                <td className="px-4 py-3 text-right font-medium tabular-nums">
+                  {formatHours(durationHours(session.start_time, session.end_time))}
+                </td>
+              </tr>
+            ))}
+            {sessions.length === 0 ? (
+              <tr>
+                <td className="px-4 py-6 text-center text-slate-500" colSpan={5}>
+                  {t("noWorkSessions")}
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function PausesTable({
+  pauses,
+  t
+}: {
+  pauses: ClientPause[];
+  t: (key: string, values?: Record<string, string | number>) => string;
+}) {
+  return (
+    <div className="client-panel rounded-md border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 p-4">
+        <p className="label">{t("pauses")}</p>
+      </div>
+      <div>
+        <table className="client-table compact-table w-full table-fixed text-left text-xs sm:text-sm">
+          <colgroup>
+            <col className="w-[22%]" />
+            <col className="w-[26%]" />
+            <col className="w-[26%]" />
+            <col className="w-[26%]" />
+          </colgroup>
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="px-4 py-3">{t("worker")}</th>
+              <th className="px-4 py-3">{t("start")}</th>
+              <th className="px-4 py-3">{t("end")}</th>
+              <th className="px-4 py-3 text-right">{t("duration")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pauses.map((pause) => (
+              <tr className="border-t border-slate-100" key={`${pause.worker_id}-${pause.start_time}`}>
+                <td className="px-4 py-3 font-medium">{pause.full_name}</td>
+                <td className="px-4 py-3">
+                  <CompactDateTime value={pause.start_time} />
+                </td>
+                <td className="px-4 py-3">
+                  <CompactDateTime value={pause.end_time} />
+                </td>
+                <td className="px-4 py-3 text-right font-medium tabular-nums">
+                  {formatDurationMinutes(pause.start_time, pause.end_time)}
+                </td>
+              </tr>
+            ))}
+            {pauses.length === 0 ? (
+              <tr>
+                <td className="px-4 py-6 text-center text-slate-500" colSpan={4}>
+                  {t("noPauses")}
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CompactDateTime({ value }: { value: string }) {
+  const { day, time } = formatCompactDateTime(value);
+
+  return (
+    <span className="compact-date tabular-nums">
+      <span>{day}</span>
+      <span>{time}</span>
+    </span>
   );
 }

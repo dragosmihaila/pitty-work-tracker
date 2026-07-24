@@ -5,7 +5,12 @@ import { signOut } from "@/app/actions";
 import { logWorkSession, startPause, stopPause, updatePauseEnd } from "@/app/worker/actions";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { TimelineChart } from "@/components/timeline-chart";
-import { durationHours, formatDateTime, formatDurationMinutes, formatHours } from "@/lib/date-summary";
+import {
+  durationHours,
+  formatCompactDateTime,
+  formatDurationMinutes,
+  formatHours
+} from "@/lib/date-summary";
 import { useLanguage } from "@/lib/i18n";
 import { usePlatformStyle } from "@/lib/use-platform-style";
 import {
@@ -49,7 +54,6 @@ export function WorkerDashboard({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const paused = Boolean(activePause && remaining.totalMs > 0);
-  const daySummary = useMemo(() => buildWorkerSummary(sessions, "day"), [sessions]);
   const weekSummary = useMemo(() => buildWorkerSummary(sessions, "week"), [sessions]);
   const grandTotal = useMemo(() => grandWorkerTotal(sessions), [sessions]);
   const { language, setLanguage, t } = useLanguage();
@@ -79,7 +83,7 @@ export function WorkerDashboard({
   }
 
   return (
-    <main className={`min-h-screen bg-paper os-${platformStyle}`}>
+    <main className={`worker-dashboard min-h-screen bg-paper os-${platformStyle}`}>
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4">
           <div>
@@ -263,7 +267,6 @@ export function WorkerDashboard({
             sessions={timelineSessions}
           />
 
-          <SummaryTable title={t("byDay")} buckets={daySummary} t={t} />
           <SummaryTable title={t("byWeek")} buckets={weekSummary} t={t} />
           </section>
         </div>
@@ -281,10 +284,10 @@ export function WorkerDashboard({
               </div>
             </div>
           </div>
-          <div className="flex justify-center">
+          <div className="history-toggle-wrap">
             <button
               aria-expanded={showHistory}
-              className="btn-secondary min-w-36"
+              className="history-toggle btn-secondary w-full"
               onClick={() => setShowHistory((value) => !value)}
               type="button"
             >
@@ -320,29 +323,36 @@ function SummaryTable({
       <div className="border-b border-slate-200 p-4">
         <p className="label">{title}</p>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-sm">
+      <div>
+        <table className="compact-table w-full table-fixed text-left text-xs sm:text-sm">
+          <colgroup>
+            <col className="w-[30%]" />
+            <col className="w-[21%]" />
+            <col className="w-[21%]" />
+            <col className="w-[15%]" />
+            <col className="w-[13%]" />
+          </colgroup>
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3">{t("period")}</th>
-              <th className="px-4 py-3">{t("manual")}</th>
-              <th className="px-4 py-3">{t("excavator")}</th>
-              <th className="px-4 py-3">{t("totalHours")}</th>
-              <th className="px-4 py-3">{t("totalEarnings")}</th>
+              <th className="px-4 py-3 text-right">{t("manual")}</th>
+              <th className="px-4 py-3 text-right">{t("excavator")}</th>
+              <th className="px-4 py-3 text-right">{t("totalHours")}</th>
+              <th className="px-4 py-3 text-right">{t("totalEarnings")}</th>
             </tr>
           </thead>
           <tbody>
             {buckets.map((bucket) => (
               <tr className="border-t border-slate-100" key={bucket.label}>
-                <td className="px-4 py-3 font-medium">{bucket.label}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 font-medium tabular-nums">{bucket.label}</td>
+                <td className="px-4 py-3 text-right tabular-nums">
                   {formatHours(bucket.manualHours)} / {formatMoney(bucket.manualAmount)}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 text-right tabular-nums">
                   {formatHours(bucket.excavatorHours)} / {formatMoney(bucket.excavatorAmount)}
                 </td>
-                <td className="px-4 py-3">{formatHours(bucket.totalHours)}</td>
-                <td className="px-4 py-3">{formatMoney(bucket.totalAmount)}</td>
+                <td className="px-4 py-3 text-right font-medium tabular-nums">{formatHours(bucket.totalHours)}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{formatMoney(bucket.totalAmount)}</td>
               </tr>
             ))}
             {buckets.length === 0 ? (
@@ -371,15 +381,15 @@ function RecentSessionsTable({
       <div className="border-b border-slate-200 p-4">
         <p className="label">{t("recentSessions")}</p>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] table-fixed text-left text-sm">
+      <div>
+        <table className="compact-table w-full table-fixed text-left text-xs sm:text-sm">
           <colgroup>
             <col className="w-[15%]" />
-            <col className="w-[24%]" />
-            <col className="w-[24%]" />
-            <col className="w-[13%]" />
+            <col className="w-[20%]" />
+            <col className="w-[20%]" />
+            <col className="w-[17%]" />
             <col className="w-[12%]" />
-            <col className="w-[12%]" />
+            <col className="w-[16%]" />
           </colgroup>
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
@@ -398,9 +408,13 @@ function RecentSessionsTable({
 
               return (
                 <tr className="border-t border-slate-100" key={session.id}>
-                  <td className="px-4 py-3">{t(session.work_type)}</td>
-                  <td className="px-4 py-3">{formatDateTime(session.start_time)}</td>
-                  <td className="px-4 py-3">{formatDateTime(session.end_time)}</td>
+                  <td className="px-4 py-3 font-medium">{t(session.work_type)}</td>
+                  <td className="px-4 py-3">
+                    <CompactDateTime value={session.start_time} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <CompactDateTime value={session.end_time} />
+                  </td>
                   <td className="px-4 py-3 text-right font-medium tabular-nums">{formatHours(hours)}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{formatMoney(rate)}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{formatMoney(rate * hours)}</td>
@@ -433,8 +447,8 @@ function PausesTable({
       <div className="border-b border-slate-200 p-4">
         <p className="label">{t("pauses")}</p>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] table-fixed text-left text-sm">
+      <div>
+        <table className="compact-table w-full table-fixed text-left text-xs sm:text-sm">
           <colgroup>
             <col className="w-[34%]" />
             <col className="w-[34%]" />
@@ -450,8 +464,12 @@ function PausesTable({
           <tbody>
             {pauses.map((pause) => (
               <tr className="border-t border-slate-100" key={pause.id}>
-                <td className="px-4 py-3">{formatDateTime(pause.start_time)}</td>
-                <td className="px-4 py-3">{formatDateTime(pause.end_time)}</td>
+                <td className="px-4 py-3">
+                  <CompactDateTime value={pause.start_time} />
+                </td>
+                <td className="px-4 py-3">
+                  <CompactDateTime value={pause.end_time} />
+                </td>
                 <td className="px-4 py-3 text-right font-medium tabular-nums">
                   {formatDurationMinutes(pause.start_time, pause.end_time)}
                 </td>
@@ -468,6 +486,17 @@ function PausesTable({
         </table>
       </div>
     </div>
+  );
+}
+
+function CompactDateTime({ value }: { value: string }) {
+  const { day, time } = formatCompactDateTime(value);
+
+  return (
+    <span className="compact-date tabular-nums">
+      <span>{day}</span>
+      <span>{time}</span>
+    </span>
   );
 }
 

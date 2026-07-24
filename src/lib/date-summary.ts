@@ -35,6 +35,20 @@ export function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
+export function formatCompactDateTime(value: string) {
+  const date = new Date(value);
+  const day = new Intl.DateTimeFormat(undefined, {
+    month: "2-digit",
+    day: "2-digit"
+  }).format(date);
+  const time = new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+
+  return { day, time };
+}
+
 export function formatDurationMinutes(startTime: string, endTime: string) {
   const startMs = new Date(startTime).getTime();
   const endMs = new Date(endTime).getTime();
